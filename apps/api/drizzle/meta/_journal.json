@@ -15,6 +15,20 @@
       "when": 1790853858252,
       "tag": "0001_colossal_energizer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790927875101,
+      "tag": "0002_nervous_mauler",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790928437910,
+      "tag": "0003_sturdy_malcolm_colcord",
+      "breakpoints": true
     }
   ]
 }

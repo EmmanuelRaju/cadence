@@ -1,0 +1,2 @@
+DROP INDEX "subscriptions_active_idx";--> statement-breakpoint
+CREATE INDEX "subscriptions_renewal_due_idx" ON "subscriptions" USING btree ("current_period_end") WHERE "subscriptions"."status" IN ('active','past_due');

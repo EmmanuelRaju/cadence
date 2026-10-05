@@ -220,6 +220,12 @@ export const subscriptions = pgTable(
     }),
     index("subscriptions_tenant_customer_idx").on(t.tenantId, t.customerId),
     index("subscriptions_tenant_plan_idx").on(t.tenantId, t.planId),
+    index("subscriptions_renewal_due_idx")
+      .on(t.currentPeriodEnd)
+      .where(sql`${t.status} IN ('active','past_due')`),
+    uniqueIndex("subscriptions_one_live_per_plan_uq")
+      .on(t.tenantId, t.customerId, t.planId)
+      .where(sql`${t.status} <> 'canceled'`),
     unique("subscriptions_tenant_id_uq").on(t.tenantId, t.id),
     check(
       "subscriptions_canceled_consistent",
@@ -240,6 +246,39 @@ export const subscriptions = pgTable(
     check(
       "subscriptions_period_order",
       sql`${t.currentPeriodEnd} > ${t.currentPeriodStart}`,
+    ),
+  ],
+)
+
+export const subscriptionEvents = pgTable(
+  "subscription_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    subscriptionId: uuid("subscription_id").notNull(),
+    fromStatus: subscriptionStatusEnum("from_status"),
+    toStatus: subscriptionStatusEnum("to_status").notNull(),
+    reason: text("reason").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      name: "subscription_events_subscription_fk",
+      columns: [t.tenantId, t.subscriptionId],
+      foreignColumns: [subscriptions.tenantId, subscriptions.id],
+    }),
+    index("subscription_events_tenant_subscription_created_at_idx").on(
+      t.tenantId,
+      t.subscriptionId,
+      t.createdAt,
+    ),
+    check(
+      "subscription_events_from_status_distinct_from_to_status",
+      sql`(${t.fromStatus} IS DISTINCT FROM ${t.toStatus})`,
     ),
   ],
 )
