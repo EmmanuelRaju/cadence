@@ -1,9 +1,30 @@
 import fastify from "fastify"
 import { client, db } from "./db/client"
 import { sql } from "drizzle-orm"
+import {
+  serializerCompiler,
+  validatorCompiler,
+} from "fastify-type-provider-zod"
+import { planRoutes } from "./routes/plans"
+import { registerErrorHandler } from "./error-handler"
+import { customerRoutes } from "./routes/customers"
+import { tenantContext } from "./plugins/tenant-context"
+import { randomUUID } from "node:crypto"
 
 export function buildApp() {
-  const app = fastify({ logger: true })
+  const app = fastify({
+    logger: true,
+    genReqId: (req) => (req.headers["x-request-id"] as string) ?? randomUUID(),
+  })
+
+  app.setValidatorCompiler(validatorCompiler)
+  app.setSerializerCompiler(serializerCompiler)
+  registerErrorHandler(app)
+  app.register(async (tenantScoped) => {
+    await tenantScoped.register(tenantContext)
+    tenantScoped.register(planRoutes)
+    tenantScoped.register(customerRoutes)
+  })
 
   app.get("/health", () => {
     return { status: "ok" }

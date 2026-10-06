@@ -9,4 +9,11 @@ const Env = z.object({
   DATABASE_URL: z.string().min(1),
 })
 
-export const env = Env.parse(process.env)
+const parsed = Env.safeParse(process.env)
+if (!parsed.success) {
+  console.error(
+    "Invalid environment configuration:\n" + z.prettifyError(parsed.error),
+  )
+  process.exit(1)
+}
+export const env = parsed.data
