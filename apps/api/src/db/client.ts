@@ -5,3 +5,7 @@ import * as schema from "./schema"
 
 export const client = pg(env.DATABASE_URL, { max: 10 })
 export const db = drizzle(client, { schema })
+
+export type Executor =
+  | typeof db
+  | Parameters<Parameters<typeof db.transaction>[0]>[0]

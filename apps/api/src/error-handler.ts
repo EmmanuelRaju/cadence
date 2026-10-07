@@ -10,6 +10,8 @@ const constraintMessages: Record<string, string> = {
   customers_tenant_phone_uq: "A customer with this phone number already exists",
   subscriptions_one_live_per_plan_uq:
     "This customer already has a live subscription to this plan",
+  users_email_uq: "An account with this email already exists",
+  tenants_slug_unique: "This workspace URL is taken",
 }
 
 export function registerErrorHandler(app: FastifyInstance) {

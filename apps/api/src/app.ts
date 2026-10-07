@@ -10,6 +10,9 @@ import { registerErrorHandler } from "./error-handler"
 import { customerRoutes } from "./routes/customers"
 import { tenantContext } from "./plugins/tenant-context"
 import { randomUUID } from "node:crypto"
+import cookie from "@fastify/cookie"
+import { auth } from "./plugins/auth"
+import { authRoutes } from "./routes/auth"
 
 export function buildApp() {
   const app = fastify({
@@ -20,6 +23,9 @@ export function buildApp() {
   app.setValidatorCompiler(validatorCompiler)
   app.setSerializerCompiler(serializerCompiler)
   registerErrorHandler(app)
+  app.register(cookie)
+  app.register(auth)
+  app.register(authRoutes)
   app.register(async (tenantScoped) => {
     await tenantScoped.register(tenantContext)
     tenantScoped.register(planRoutes)
