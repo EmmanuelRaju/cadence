@@ -4,6 +4,7 @@ import z from "zod"
 import { db } from "../db/client"
 import { plans } from "../db/schema"
 import { and, eq, isNull } from "drizzle-orm"
+import { ALL_ROLES } from "../plugins/tenant-context"
 
 const MAX_PLAN_AMOUNT_MINOR = 100_000_000 // ₹10,00,000
 
@@ -18,15 +19,19 @@ const CreatePlan = z.object({
 export async function planRoutes(app: FastifyInstance) {
   const r = app.withTypeProvider<ZodTypeProvider>()
 
-  r.post("/plans", { schema: { body: CreatePlan } }, async (req, reply) => {
-    const [plan] = await db
-      .insert(plans)
-      .values({ ...req.body, tenantId: req.tenantId })
-      .returning()
-    return reply.code(201).send(plan)
-  })
+  r.post(
+    "/plans",
+    { schema: { body: CreatePlan }, config: { roles: ["owner", "admin"] } },
+    async (req, reply) => {
+      const [plan] = await db
+        .insert(plans)
+        .values({ ...req.body, tenantId: req.tenantId })
+        .returning()
+      return reply.code(201).send(plan)
+    },
+  )
 
-  r.get("/plans", async (req) => {
+  r.get("/plans", { config: { roles: ALL_ROLES } }, async (req) => {
     return db
       .select()
       .from(plans)

@@ -4,6 +4,7 @@ import z from "zod"
 import { db } from "../db/client"
 import { customers } from "../db/schema"
 import { and, eq, isNull } from "drizzle-orm"
+import { ALL_ROLES } from "../plugins/tenant-context"
 
 const CreateCustomer = z
   .object({
@@ -24,7 +25,7 @@ export async function customerRoutes(app: FastifyInstance) {
 
   r.post(
     "/customers",
-    { schema: { body: CreateCustomer } },
+    { schema: { body: CreateCustomer }, config: { roles: ALL_ROLES } },
     async (req, reply) => {
       const [customer] = await db
         .insert(customers)
@@ -34,7 +35,7 @@ export async function customerRoutes(app: FastifyInstance) {
     },
   )
 
-  r.get("/customers", async (req) => {
+  r.get("/customers", { config: { roles: ALL_ROLES } }, async (req) => {
     return db
       .select()
       .from(customers)
