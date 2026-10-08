@@ -33,13 +33,13 @@ The API owns all business logic so that every consumer (the dashboard, the store
 
 ## Tech stack
 
-| Layer | Choice |
-|---|---|
-| API | Node.js, Fastify, TypeScript |
-| Validation | Zod (via `fastify-type-provider-zod`) |
-| Database | PostgreSQL 17, Drizzle ORM, Drizzle Kit migrations |
-| Monorepo | pnpm workspaces, Turborepo |
-| Planned | Next.js (App Router), Redis + BullMQ, Razorpay (test mode), Vitest, Playwright, OpenTelemetry, Docker, GitHub Actions |
+| Layer      | Choice                                                                                                                |
+| ---------- | --------------------------------------------------------------------------------------------------------------------- |
+| API        | Node.js, Fastify, TypeScript                                                                                          |
+| Validation | Zod (via `fastify-type-provider-zod`)                                                                                 |
+| Database   | PostgreSQL 17, Drizzle ORM, Drizzle Kit migrations                                                                    |
+| Monorepo   | pnpm workspaces, Turborepo                                                                                            |
+| Planned    | Next.js (App Router), Redis + BullMQ, Razorpay (test mode), Vitest, Playwright, OpenTelemetry, Docker, GitHub Actions |
 
 ---
 
@@ -134,26 +134,27 @@ pnpm dev
 
 ### Environment variables
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `DATABASE_URL` | Yes | | PostgreSQL connection string |
-| `PORT` | No | `3000` | Port the API listens on |
-| `NODE_ENV` | No | `development` | `development`, `test` or `production` |
+| Variable       | Required | Default       | Description                           |
+| -------------- | -------- | ------------- | ------------------------------------- |
+| `DATABASE_URL` | Yes      |               | PostgreSQL connection string          |
+| `PORT`         | No       | `3000`        | Port the API listens on               |
+| `NODE_ENV`     | No       | `development` | `development`, `test` or `production` |
 
 ---
 
 ## API
 
-> **Note:** until authentication lands, tenant-scoped routes identify the tenant through a temporary `x-tenant-id` header. This is isolated in a single plugin and will be replaced by session-based auth.
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/health` | Liveness: the process is running |
-| `GET` | `/ready` | Readiness: the database is reachable |
-| `POST` | `/plans` | Create a plan |
-| `GET` | `/plans` | List active plans |
-| `POST` | `/customers` | Create a customer (email and/or phone) |
-| `GET` | `/customers` | List active customers |
+| Method | Path           | Description                                  |
+| ------ | -------------- | -------------------------------------------- |
+| `GET`  | `/health`      | Liveness: the process is running             |
+| `GET`  | `/ready`       | Readiness: the database is reachable         |
+| `POST` | `/auth/signup` | Creates user, tenant, membership and session |
+| `POST` | `/auth/login`  | Logs in and creates session                  |
+| `POST` | `/auth/logout` | Logs out and deletes session                 |
+| `GET`  | `/plans`       | List active plans                            |
+| `POST` | `/plans`       | Create a plan                                |
+| `GET`  | `/customers`   | List active customers                        |
+| `POST` | `/customers`   | Create a customer (email and/or phone)       |
 
 ### Example
 
@@ -163,6 +164,19 @@ curl -X POST localhost:3000/plans \
   -H "content-type: application/json" \
   -d '{"name":"Daily milk","amountMinor":4900,"currency":"INR","interval":"day"}'
 ```
+
+### Pagination format
+
+Every paginated response includes a `cursor` field:
+
+```json
+{
+  "items": [...],
+  "cursor": "<base64-encoded cursor>"
+}
+```
+
+Where `<base64-encoded cursor>` is the base64 encoding of the `createdAt` and `id` of the last item in the list, in that order. A missing or empty `cursor` means "start from the beginning".
 
 ### Error format
 
@@ -208,7 +222,7 @@ cadence/
 - [x] Multi-tenant schema with database-enforced invariants
 - [x] Subscription state machine and audit log schema
 - [x] Fastify API with validation and central error handling
-- [ ] Session-based authentication and role-based access control
+- [x] Session-based authentication and role-based access control
 - [ ] Merchant dashboard (Next.js App Router)
 - [ ] Subscriptions API with optimistic concurrency on status transitions
 - [ ] Razorpay (test mode) payments with idempotent webhook handling

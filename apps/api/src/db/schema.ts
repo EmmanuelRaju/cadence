@@ -101,6 +101,11 @@ export const memberships = pgTable(
   ],
 )
 
+// Add an index for this query, using lessons 3 and 4. It must:
+// start with tenant_id, since every query filters on it,
+// then follow the sort order, created_at and then id,
+// be partial, with archived_at IS NULL.
+
 export const customers = pgTable(
   "customers",
   {
@@ -111,7 +116,7 @@ export const customers = pgTable(
     email: varchar("email"),
     name: text("name").notNull(),
     phone: text("phone"),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    createdAt: timestamp("created_at", { withTimezone: true, precision: 3 })
       .notNull()
       .defaultNow(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
@@ -128,6 +133,9 @@ export const customers = pgTable(
       .on(t.tenantId, t.phone)
       .where(sql`${t.archivedAt} IS NULL`),
     unique("customers_tenant_id_uq").on(t.tenantId, t.id),
+    index("customers_tenant_id_created_at_id_idx")
+      .on(t.tenantId, t.createdAt, t.id)
+      .where(sql`${t.archivedAt} IS NULL`),
     check(
       "customers_contact_present",
       sql`${t.email} IS NOT NULL OR ${t.phone} IS NOT NULL`,
@@ -155,7 +163,7 @@ export const plans = pgTable(
     interval: billingIntervalEnum("interval").notNull(),
     intervalCount: integer("interval_count").notNull().default(1),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    createdAt: timestamp("created_at", { withTimezone: true, precision: 3 })
       .notNull()
       .defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -165,6 +173,9 @@ export const plans = pgTable(
   },
   (t) => [
     unique("plans_tenant_id_uq").on(t.tenantId, t.id),
+    index("plans_tenant_id_created_at_id_idx")
+      .on(t.tenantId, t.createdAt, t.id)
+      .where(sql`${t.archivedAt} IS NULL`),
     check("plans_amount_positive", sql`${t.amountMinor} > 0`),
     check(
       "plans_interval_count_positive",

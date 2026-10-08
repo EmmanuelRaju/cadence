@@ -3,8 +3,9 @@ import type { ZodTypeProvider } from "fastify-type-provider-zod"
 import z from "zod"
 import { db } from "../db/client"
 import { plans } from "../db/schema"
-import { and, eq, isNull } from "drizzle-orm"
+import { and, desc, eq, isNull, sql } from "drizzle-orm"
 import { ALL_ROLES } from "../plugins/tenant-context"
+import { decodeCursor, PageQuery, paginate } from "../lib/pagination"
 
 const MAX_PLAN_AMOUNT_MINOR = 100_000_000 // ₹10,00,000
 
@@ -31,10 +32,29 @@ export async function planRoutes(app: FastifyInstance) {
     },
   )
 
-  r.get("/plans", { config: { roles: ALL_ROLES } }, async (req) => {
-    return db
-      .select()
-      .from(plans)
-      .where(and(eq(plans.tenantId, req.tenantId), isNull(plans.archivedAt)))
-  })
+  r.get(
+    "/plans",
+    { schema: { querystring: PageQuery }, config: { roles: ALL_ROLES } },
+    async (req) => {
+      const { limit, cursor } = req.query
+      const after = cursor ? decodeCursor(cursor) : null
+
+      const rows = await db
+        .select()
+        .from(plans)
+        .where(
+          and(
+            eq(plans.tenantId, req.tenantId),
+            isNull(plans.archivedAt),
+            after
+              ? sql`(${plans.createdAt},${plans.id}) < (${after.createdAt.toISOString()}::timestamptz,${after.id}::uuid)`
+              : undefined,
+          ),
+        )
+        .orderBy(desc(plans.createdAt), desc(plans.id))
+        .limit(limit + 1)
+
+      return paginate(rows, limit)
+    },
+  )
 }

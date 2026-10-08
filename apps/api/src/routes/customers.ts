@@ -3,8 +3,9 @@ import { ZodTypeProvider } from "fastify-type-provider-zod"
 import z from "zod"
 import { db } from "../db/client"
 import { customers } from "../db/schema"
-import { and, eq, isNull } from "drizzle-orm"
+import { and, desc, eq, isNull, sql } from "drizzle-orm"
 import { ALL_ROLES } from "../plugins/tenant-context"
+import { decodeCursor, PageQuery, paginate } from "../lib/pagination"
 
 const CreateCustomer = z
   .object({
@@ -35,12 +36,28 @@ export async function customerRoutes(app: FastifyInstance) {
     },
   )
 
-  r.get("/customers", { config: { roles: ALL_ROLES } }, async (req) => {
-    return db
-      .select()
-      .from(customers)
-      .where(
-        and(eq(customers.tenantId, req.tenantId), isNull(customers.archivedAt)),
-      )
-  })
+  r.get(
+    "/customers",
+    { schema: { querystring: PageQuery }, config: { roles: ALL_ROLES } },
+    async (req) => {
+      const { limit, cursor } = req.query
+      const after = cursor ? decodeCursor(cursor) : null
+      const rows = await db
+        .select()
+        .from(customers)
+        .where(
+          and(
+            eq(customers.tenantId, req.tenantId),
+            isNull(customers.archivedAt),
+            after
+              ? sql`(${customers.createdAt},${customers.id}) < (${after.createdAt.toISOString()}::timestamptz,${after.id}::uuid)`
+              : undefined,
+          ),
+        )
+        .orderBy(desc(customers.createdAt), desc(customers.id))
+        .limit(limit + 1)
+
+      return paginate(rows, limit)
+    },
+  )
 }

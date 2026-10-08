@@ -36,6 +36,13 @@
       "when": 1791368850409,
       "tag": "0004_clear_namora",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791463905009,
+      "tag": "0005_living_blink",
+      "breakpoints": true
     }
   ]
 }
